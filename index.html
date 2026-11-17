@@ -79,6 +79,12 @@
   .dept-row {
     margin-top: 10px; line-height: 1.35; white-space: nowrap;
     font-size: 17px; font-size: 3.85cqw; letter-spacing: -.2px;
+    overflow: hidden;
+    width: calc(100% - 96px);
+    width: calc(100% - 20cqw - 10px);
+  }
+  .dept-row .editable {
+    display: inline-block; white-space: nowrap; will-change: transform;
   }
   .bal-row {
     margin-top: 10px; line-height: 1.35; white-space: nowrap;
@@ -469,6 +475,44 @@
     if (av) document.querySelectorAll('.js-avatar-img').forEach(function (img) { img.src = av; });
   } catch (e) {}
 
+  // 院系行跑马灯：文字超出容器时来回滚动——开头停顿约1秒，匀速向左滚到末尾完整露出，
+  // 再停顿约1秒，然后向右滚回开头，往返循环；文字不超出容器时静态显示不滚动
+  var deptRow = document.querySelector('.dept-row');
+  var deptEl = deptRow ? deptRow.querySelector('[data-bind="dept"]') : null;
+  var deptAnim = null;
+  var deptRaf = 0;
+  function setupDeptMarquee() {
+    if (!deptRow || !deptEl) return;
+    if (deptAnim) { deptAnim.cancel(); deptAnim = null; }
+    deptEl.style.transform = '';
+    if (!deptRow.clientWidth) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (typeof deptEl.animate !== 'function') return;
+    var overflow = deptEl.offsetWidth - deptRow.clientWidth;
+    if (overflow <= 1) return;
+    var pause = 1000;
+    var move = Math.max(600, Math.round(overflow / 50 * 1000));
+    var total = pause + move + pause + move;
+    var end = 'translateX(' + (-overflow) + 'px)';
+    deptAnim = deptEl.animate([
+      { transform: 'translateX(0px)', offset: 0, easing: 'linear' },
+      { transform: 'translateX(0px)', offset: pause / total, easing: 'linear' },
+      { transform: end, offset: (pause + move) / total, easing: 'linear' },
+      { transform: end, offset: (pause + move + pause) / total, easing: 'linear' },
+      { transform: 'translateX(0px)', offset: 1, easing: 'linear' }
+    ], { duration: total, iterations: Infinity });
+  }
+  function scheduleDeptMarquee() {
+    cancelAnimationFrame(deptRaf);
+    deptRaf = requestAnimationFrame(setupDeptMarquee);
+  }
+  setupDeptMarquee();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(scheduleDeptMarquee);
+  window.addEventListener('resize', scheduleDeptMarquee);
+  if (window.MutationObserver && deptEl) {
+    new MutationObserver(scheduleDeptMarquee).observe(deptEl, { childList: true, characterData: true, subtree: true });
+  }
+
   var toastTimer = null;
   function toast(msg) {
     var t = document.getElementById('toast');
@@ -556,6 +600,7 @@
       document.getElementById('page-' + p).hidden = (p !== page);
     });
     tabs.forEach(function (t) { t.classList.toggle('active', t.getAttribute('data-go') === page); });
+    scheduleDeptMarquee();
     window.scrollTo(0, 0);
   }
   tabs.forEach(function (t) {
