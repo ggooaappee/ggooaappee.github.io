@@ -78,33 +78,6 @@
     切换主题: "theme",
   };
 
-  const transactionSamples = [
-    {
-      title: "余额支付",
-      kind: "缴费",
-      amount: "1.08 元",
-      time: "2026-11-17 22:46:12",
-      order: "OT1CBCBDB26BH4568690",
-      summary: "设备 SnCode:C47F0EA38B14",
-    },
-    {
-      title: "余额支付",
-      kind: "缴费",
-      amount: "1.71 元",
-      time: "2026-11-16 22:20:33",
-      order: "OT1CBCBDB26BG4548378",
-      summary: "设备 SnCode:C47F0EA38B14",
-    },
-    {
-      title: "余额支付 , 系统付款码",
-      kind: "消费",
-      amount: "1.00 元",
-      time: "2026-11-16 17:23:33",
-      order: "D0989A88000753006404",
-      summary: "校车-校车二",
-    },
-  ];
-
   const elements = {
     appShell: document.querySelector(".app-shell"),
     appContent: document.querySelector(".app-content"),
@@ -275,6 +248,32 @@
     return `${now.getFullYear()}年${now.getMonth() + 1}月`;
   }
 
+  function formatDateTime(date) {
+    const pad = (value) => String(value).padStart(2, "0");
+    return [
+      `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
+      `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`,
+    ].join(" ");
+  }
+
+  function createTransactionSamples() {
+    const now = Date.now();
+    return Array.from({ length: 4 }, (_, index) => {
+      const minutesAgo = 17 + index * 137 + Math.floor(Math.random() * 45);
+      const randomDigits = Array.from({ length: 18 }, () =>
+        Math.floor(Math.random() * 10),
+      ).join("");
+      return {
+        title: "余额支付 , 系统付款码",
+        kind: "消费",
+        amount: "1.00 元",
+        time: formatDateTime(new Date(now - minutesAgo * 60 * 1000)),
+        order: `D${randomDigits}`,
+        summary: "校车消费",
+      };
+    });
+  }
+
   function featureTemplate(key) {
     const safeName = escapeHtml(profile.name || "未填写");
     const safeNumber = escapeHtml(profile.studentId || "");
@@ -314,7 +313,7 @@
     }
 
     if (key === "transactions") {
-      const rows = transactionSamples
+      const rows = createTransactionSamples()
         .map(
           (item) => `
             <article class="transaction-item">
